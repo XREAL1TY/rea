@@ -1,0 +1,32 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    # 每天北京时间 09:17 自动同步
+    - cron: "17 1 * * *"
+
+  # 允许手动执行
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Sync Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.3
+        with:
+          target_sync_branch: main
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_sync_repo: morluto/rea
+          upstream_sync_branch: main
