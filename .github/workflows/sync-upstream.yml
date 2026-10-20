@@ -21,12 +21,32 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Sync Upstream
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.3
-        with:
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-          upstream_sync_repo: morluto/rea
-          upstream_sync_branch: main
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/morluto/rea.git
+          git fetch upstream main
+
+          git merge --no-commit --no-ff upstream/main
+
+          if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+            git restore --source=HEAD --staged --worktree .github/workflows
+
+            if git diff --staged --quiet; then
+              echo "Only workflow changes detected; skipping sync commit."
+              git merge --abort
+              exit 0
+            fi
+
+            git commit -m "chore: sync upstream main"
+            git push origin HEAD:main
+          else
+            echo "Already up to date."
+          fi
