@@ -2,10 +2,7 @@ name: Sync Fork with Upstream
 
 on:
   schedule:
-    # 每天北京时间 09:17 自动同步
-    - cron: "17 1 * * *"
-
-  # 允许手动执行
+    - cron: "17 13 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,11 +10,11 @@ permissions:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout Fork
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
