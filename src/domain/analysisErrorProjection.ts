@@ -157,10 +157,9 @@ const errorRecovery = (
   error: AnalysisError,
 ): AnalysisErrorRecovery | undefined => {
   if (error instanceof AnalysisInputError)
-    return {
-      kind: "inspect_input_contract",
-      operation: error.operation,
-    };
+    return error.conformsToInputContract
+      ? undefined
+      : { kind: "inspect_input_contract", operation: error.operation };
   if (error instanceof AnalysisTimeoutError)
     return {
       kind: "inspect_timeout_state",
@@ -379,6 +378,9 @@ const requestErrorDetails = (
     return {
       evidence_id: error.evidenceId,
       reason: error.reason,
+      ...(error.referenceScope === undefined
+        ? {}
+        : { reference_scope: error.referenceScope }),
       expected: error.expected,
       actual: error.actual,
     };
