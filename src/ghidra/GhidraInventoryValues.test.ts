@@ -73,7 +73,7 @@ it.each(["other", 42, null, {}])(
 it.each(["list_procedures", "search_procedures"] as const)(
   "preserves real bridge symbol provenance in %s",
   (operation) => {
-    // Captured from Ghidra 12.1.4 on the source-owned PowerPC DOL fixture.
+    // Symbol captured from Ghidra 12.1.4 on the source-owned PowerPC DOL fixture.
     const rows = [
       {
         address: "0x80003130",
@@ -85,11 +85,7 @@ it.each(["list_procedures", "search_procedures"] as const)(
           type: "function",
           source: "user_defined",
         },
-        ...(operation === "list_procedures"
-          ? {
-              procedure: { external: false, thunk: false, thunk_target: null },
-            }
-          : {}),
+        procedure: { external: false, thunk: false, thunk_target: null },
       },
     ];
     expect(parseGhidraInventoryResult(operation, rows)).toEqual({
@@ -364,6 +360,14 @@ const byteSearch = (space = "") => ({
         bytes: 16,
       },
     ],
+    skipped_overlays: [
+      {
+        segment: "overlay",
+        start: `${space}0x0040`,
+        end: `${space}0x004f`,
+        bytes: 16,
+      },
+    ],
   },
   complete: true,
   next_cursor: null as string | null,
@@ -389,6 +393,8 @@ it.each([
   ["uninitialized end", ["searched", "skipped_uninitialized", 0, "end"]],
   ["unloaded start", ["searched", "skipped_not_loaded", 0, "start"]],
   ["unloaded end", ["searched", "skipped_not_loaded", 0, "end"]],
+  ["overlay start", ["searched", "skipped_overlays", 0, "start"]],
+  ["overlay end", ["searched", "skipped_overlays", 0, "end"]],
 ] as const)(
   "rejects noncanonical %s at its owning address field",
   (_label, path) => {
