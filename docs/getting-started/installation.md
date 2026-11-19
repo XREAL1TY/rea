@@ -636,6 +636,13 @@ wherever these docs say `rea …`, run
 `node /absolute/path/to/rea/scripts/rea.mjs …`. Setup run this way registers
 the checkout's `scripts/rea.mjs` with your agents.
 
+Avoid `npx rea-agents` from inside this checkout. Its package name is
+`rea-agents`, so npm can select the checkout, including when the requested
+version matches it. If the checkout's `rea` command is unavailable, the launch
+fails. Use the linked `rea` or
+`node /absolute/path/to/rea/scripts/rea.mjs` forms above. Run setup through
+that entrypoint to register the checkout for your agent.
+
 After `git pull`, run `npm ci` and `npm run build:cached` again. If the
 checkout's skill changed, refresh each installed copy before restarting its
 agent. For example, preview and review the Claude Code skill changes:
@@ -1010,14 +1017,23 @@ stage `connection`.
 
 If macOS denies Apple Events, REA reports
 `details.launch_rejection.boundary: "apple_events_authorization"` with
-`reason: "not_authorized"`, category `unavailable`, and `retryable: false`.
-Allow the application that starts REA under
-**System Settings → Privacy & Security → Automation** when that client can be
-authorized. A hardened-runtime application requires the
+`reason: "not_authorized"`,
+`responsibility: "client_or_disclaimed_runtime"`,
+`settings_pane: "privacy_security_automation"`, and
+`entitlement_id: "com.apple.security.automation.apple-events"`,
+category `unavailable`, and `retryable: false`. The helper does not identify
+the responsible process, so `responsibility` covers both an authorizable client
+and a client that disclaims TCC responsibility.
+Allow the application that macOS identifies as responsible for REA under
+**System Settings → Privacy & Security → Automation**. Some MCP clients, including
+Claude Desktop, disclaim responsibility, so macOS attributes the request to the
+REA runtime, such as `node`; changing the client's Automation setting cannot
+authorize that runtime. In this case start REA from a client macOS can authorize,
+such as Claude Code or Terminal. A hardened-runtime application requires the
 `com.apple.security.automation.apple-events` entitlement before macOS will
-prompt; without it, ask the client developer to add the entitlement or start
-REA from a client macOS can authorize, such as Terminal. Retrying from the same
-unauthorized client will not succeed until authorization changes. REA releases
+prompt; if the responsible client lacks it, ask its developer to add the
+entitlement. Retrying from the same unauthorized client will not succeed until
+authorization changes. REA releases
 the target reservation when the native helper reports its complete authorization
 rejection after literal argument admission. Before application handoff, REA refuses
 double quotes, backslashes, or line breaks in the final launcher path or arguments,
@@ -1320,8 +1336,10 @@ detected user-level clients and Amp; if none of the other supported clients are
 detected, it selects their full registration catalog and Amp.
 
 REA preserves existing environment overrides, client policy, peer servers and
-unrelated settings. A changed existing file gets a private backup; an identical
-repeat keeps the file and creates no new backup. The result reports exact
+unrelated settings. Registration checks the effective client environment
+before writing and reports the field to repair if it is invalid. A changed
+existing file gets a private backup. Repeating the same registration keeps
+the file and creates no new backup. The result reports exact
 `command` and `args`, each selected client's effective scope, and configured,
 unchanged, failed or not-started outcomes. A partial failure returns a nonzero
 status while retaining successful client outcomes and recovery paths.
@@ -1660,9 +1678,10 @@ time proportional to Program size; saving runs once after first analysis and
 again only when the Program changes.
 
 This initial mode supports stock native ELF, PE and Mach-O imports on POSIX.
-Windows, special pinned-loader profiles, caller-selected `.gpr` projects,
-language/analyzer overrides, analysis seeds and extra analysis extensions are
-not admitted with this setting; unset it to use their existing workflows.
+Windows, special pinned-loader profiles, committed ELF image bases (the MIPS32
+shared-image lane), caller-selected `.gpr` projects, language/analyzer
+overrides, analysis seeds and extra analysis extensions are not admitted with
+this setting; unset it to use their existing workflows.
 The checkpoint directory must be private to the current user.
 
 REA analysis snapshots remain separate immutable query results. Initial analysis
@@ -2157,9 +2176,10 @@ before running setup again. A global installation provides a more durable path.
 
 ## Package runners and global installation
 
-Package runners can select project-local packages and read project configuration,
-even for explicit version requests. Acquire REA from a trusted working directory,
-outside the target project, and pass absolute target paths to analysis commands.
+Package runners can read project configuration. Acquire REA from a trusted
+working directory outside the target project and any REA source checkout, and
+pass absolute target paths to analysis commands. To run REA from its checkout,
+use the [source checkout instructions](#run-rea-from-a-checkout).
 REA cannot validate package acquisition that happens before its entrypoint starts.
 To request the latest release explicitly, use:
 
